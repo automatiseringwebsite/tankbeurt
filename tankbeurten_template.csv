@@ -1,0 +1,3 @@
+Datum,Tijd,Station Naam,Station Merk,Station Stad,Station Adres,Provincie,Brandstof Soort,Prijs per Liter,Aantal Liters,Totaal Bedrag,Kilometerstand Voor,Kilometerstand Na,Gereden Km,Betalingsmethode,Auto ID,Foto Pad,Opmerkingen
+2026-02-24,14:30,Shell - Centrum,Shell,Utrecht,[Vul adres in],Utrecht,Euro 95,1.92,32.5,62.40,145230,145680,450,Pin,1,/pad/naar/foto1.jpg,Bijtank met goede prijs
+2026-02-24,14:35,Tango - Noord,Tango,Amsterdam,[Vul adres in],Noord-Holland,Euro 95,1.82,25.0,45.50,145680,146125,445,Contactloos,1,/pad/naar/foto2.jpg,Andere locatie getest

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tankbeurt Invoer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        .edit-btn {
+            padding: 5px 10px;
+            background: #ffc107;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .edit-btn:hover {
+            background: #e0a800;
+        }
+        .delete-btn {
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-cancel {
+            background: #6c757d;
+        }
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .fuel-icon {
+            font-size: 60px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="fuel-icon">⛽</div>
+        <h1>Tankbeurt Invoer</h1>
+        <p class="subtitle">Voer je tankbeurtgegevens in</p>
+
+        <form id="tankbeurtForm">
+            <div class="form-group">
+                <label for="datum">📅 Datum</label>
+                <input type="date" id="datum" name="datum" required>
+            </div>
+
+            <div class="form-group">
+                <label for="tijd">🕐 Tijd</label>
+                <input type="time" id="tijd" name="tijd" required>
+            </div>
+
+            <div class="form-group">
+                <label for="station_naam">⛽ Station Naam</label>
+                <input type="text" id="station_naam" name="station_naam" placeholder="bijv. Shell Centrum Utrecht">
+            </div>
+
+            <div class="form-group">
+                <label for="station_merk">🏷️ Station Merk</label>
+                <select id="station_merk" name="station_merk">
+                    <option value="">Selecteer merk...</option>
+                    <option value="Shell">Shell</option>
+                    <option value="Tango">Tango</option>
+                    <option value="Esso">Esso</option>
+                    <option value="Total">Total</option>
+                    <option value="Q8">Q8</option>
+                    <option value="AVIA">AVIA</option>
+                    <option value="Haven">Haven</option>
+                    <option value="Gulf">Gulf</option>
+                    <option value="Texaco">Texaco</option>
+                    <option value="Eurotank">Eurotank</option>
+                    <option value="Tinq">Tinq</option>
+                    <option value="Daan">Daan</option>
+                    <option value="Van der Put">Van der Put</option>
+                    <option value="Anders">Anders</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="station_adres">📍 Station Adres</label>
+                <input type="text" id="station_adres" name="station_adres" placeholder="bijv. Hoofdstraat 1, Utrecht">
+            </div>
+
+            <div class="form-group">
+                <label for="stad">🏙️ Stad</label>
+                <input type="text" id="stad" name="stad" placeholder="bijv. Amsterdam">
+            </div>
+
+            <div class="form-group">
+                <label for="provincie">🗺️ Provincie</label>
+                <select id="provincie" name="provincie">
+                    <option value="">Selecteer...</option>
+                    <option value="Drenthe">Drenthe</option>
+                    <option value="Flevoland">Flevoland</option>
+                    <option value="Friesland">Friesland</option>
+                    <option value="Gelderland">Gelderland</option>
+                    <option value="Groningen">Groningen</option>
+                    <option value="Limburg">Limburg</option>
+                    <option value="Noord-Brabant">Noord-Brabant</option>
+                    <option value="Noord-Holland">Noord-Holland</option>
+                    <option value="Overijssel">Overijssel</option>
+                    <option value="Utrecht">Utrecht</option>
+                    <option value="Zeeland">Zeeland</option>
+                    <option value="Zuid-Holland">Zuid-Holland</option>
+                    <option value="Buitenland">Buitenland</option>
+                </select>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label for="brandstof">⛽️ Brandstof</label>
+                        <select id="brandstof" name="brandstof" required>
+                            <option value="Euro 95">Euro 95</option>
+                            <option value="Euro 98">Euro 98</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="LPG">LPG (Autogas)</option>
+                            <option value="AdBlue">AdBlue</option>
+                            <option value="Electra">Electra</option>
+                            <option value="Waterstof">Waterstof</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="prijs_per_liter">💰 Prijs per Liter</label>
+                        <input type="number" id="prijs_per_liter" name="prijs_per_liter" step="0.001" placeholder="1.92" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label for="aantal_liters">⛽️ Aantal Liters</label>
+                        <input type="number" id="aantal_liters" name="aantal_liters" step="0.01" placeholder="32.5" required>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="totaal_bedrag">💵 Totaal Bedrag</label>
+                        <input type="number" id="totaal_bedrag" name="totaal_bedrag" step="0.01" placeholder="62.40" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label for="kilometerstand_voor">🚗 Km Voor</label>
+                        <input type="number" id="kilometerstand_voor" name="kilometerstand_voor" placeholder="145230">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="kilometerstand_na">🚗 Km Na</label>
+                        <input type="number" id="kilometerstand_na" name="kilometerstand_na" placeholder="145680">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="opmerkingen">📝 Opmerkingen</label>
+                <input type="text" id="opmerkingen" name="opmerkingen" placeholder="bijv. Goede prijs vandaag">
+            </div>
+
+            <button type="submit" class="btn">💾 Opslaan Tankbeurt</button>
+            <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Formulier Wissen</button>
+        </form>
+
+        <div id="successMessage" class="success-message">
+            ✅ Tankbeurt opgeslagen! Je kunt het formulier opnieuw gebruiken.
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3 style="font-size: 16px; color: #666; margin-bottom: 10px;">📊 Laatste Tankbeurten</h3>
+            <div id="recenteTankbeurten" style="font-size: 13px; color: #333;">
+                <p style="color: #999; font-style: italic;">Nog geen tankbeurten opgeslagen...</p>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal" id="editModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">✏️ Tankbeurt Bewerken</div>
+                    <button class="close-btn" onclick="closeEditModal()">&times;</button>
+                </div>
+                <form id="editForm">
+                    <input type="hidden" id="editTankbeurtId" name="id">
+
+                    <div class="form-group">
+                        <label for="edit_datum">📅 Datum</label>
+                        <input type="date" id="edit_datum" name="datum" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_tijd">🕐 Tijd</label>
+                        <input type="time" id="edit_tijd" name="tijd" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_station_naam">⛽️ Station</label>
+                                <input type="text" id="edit_station_naam" name="station_naam">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_station_merk">🏷️ Merk</label>
+                                <input type="text" id="edit_station_merk" name="station_merk">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_stad">🏙️ Stad</label>
+                                <input type="text" id="edit_stad" name="stad">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_provincie">🗺️ Provincie</label>
+                                <input type="text" id="edit_provincie" name="provincie">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_brandstof">⛽️ Brandstof</label>
+                        <select id="edit_brandstof" name="brandstof" required>
+                            <option value="Euro 95">Euro 95</option>
+                            <option value="Euro 98">Euro 98</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="LPG">LPG (Autogas)</option>
+                            <option value="Electra">Electra</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_prijs_per_liter">💰 Prijs per Liter</label>
+                                <input type="number" id="edit_prijs_per_liter" name="prijs_per_liter" step="0.001" required>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_aantal_liters">⛽️ Liters</label>
+                                <input type="number" id="edit_aantal_liters" name="aantal_liters" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_totaal_bedrag">💵 Totaal Bedrag</label>
+                        <input type="number" id="edit_totaal_bedrag" name="totaal_bedrag" step="0.01" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_kilometerstand_voor">🚗 Km Voor</label>
+                                <input type="number" id="edit_kilometerstand_voor" name="kilometerstand_voor">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="edit_kilometerstand_na">🚗 Km Na</label>
+                                <input type="number" id="edit_kilometerstand_na" name="kilometerstand_na">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_opmerkingen">📝 Opmerkingen</label>
+                        <input type="text" id="edit_opmerkingen" name="opmerkingen">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn">💾 Opslaan</button>
+                        <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Annuleren</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tankbeurt opslaan in localStorage
+        const tankbeurtForm = document.getElementById('tankbeurtForm');
+        const successMessage = document.getElementById('successMessage');
+        const recenteTankbeurten = document.getElementById('recenteTankbeurten');
+
+        // Laatste tankbeurten laden bij het opstarten
+        window.onload = function() {
+            laadLaatsteTankbeurten();
+            // Datum en tijd automatisch invullen
+            const nu = new Date();
+            document.getElementById('datum').value = nu.toISOString().split('T')[0];
+            document.getElementById('tijd').value = nu.toTimeString().substring(0, 5);
+        };
+
+        // Automatisch totaalbedrag berekenen
+        document.getElementById('aantal_liters').addEventListener('input', berekenTotaal);
+        document.getElementById('prijs_per_liter').addEventListener('input', berekenTotaal);
+
+        function berekenTotaal() {
+            const liters = parseFloat(document.getElementById('aantal_liters').value) || 0;
+            const prijs = parseFloat(document.getElementById('prijs_per_liter').value) || 0;
+            const totaal = liters * prijs;
+            if (totaal > 0) {
+                document.getElementById('totaal_bedrag').value = totaal.toFixed(2);
+            }
+        }
+
+        tankbeurtForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const tankbeurt = {
+                datum: document.getElementById('datum').value,
+                tijd: document.getElementById('tijd').value,
+                station_naam: document.getElementById('station_naam').value,
+                station_merk: document.getElementById('station_merk').value,
+                station_adres: document.getElementById('station_adres').value,
+                stad: document.getElementById('stad').value,
+                provincie: document.getElementById('provincie').value,
+                brandstof: document.getElementById('brandstof').value,
+                prijs_per_liter: parseFloat(document.getElementById('prijs_per_liter').value),
+                aantal_liters: parseFloat(document.getElementById('aantal_liters').value),
+                totaal_bedrag: parseFloat(document.getElementById('totaal_bedrag').value),
+                kilometerstand_voor: document.getElementById('kilometerstand_voor').value,
+                kilometerstand_na: document.getElementById('kilometerstand_na').value,
+                opmerkingen: document.getElementById('opmerkingen').value,
+                aangemaakt_op: new Date().toISOString()
+            };
+
+            // Tankbeurt opslaan in localStorage
+            let tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            tankbeurten.unshift(tankbeurt);
+            
+            // Maximaal 50 tankbeurten bewaren
+            if (tankbeurten.length > 50) {
+                tankbeurten = tankbeurten.slice(0, 50);
+            }
+            
+            localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
+
+            // Succesbericht tonen
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+
+            // Laatste tankbeurten verversen
+            laadLaatsteTankbeurten();
+
+            // Formulier resetten
+            tankbeurtForm.reset();
+            
+            // Datum en tijd opnieuw invullen
+            const nu = new Date();
+            document.getElementById('datum').value = nu.toISOString().split('T')[0];
+            document.getElementById('tijd').value = nu.toTimeString().substring(0, 5);
+        });
+
+        function laadLaatsteTankbeurten() {
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+
+            if (tankbeurten.length === 0) {
+                recenteTankbeurten.innerHTML = '<p style="color: #999; font-style: italic;">Nog geen tankbeurten opgeslagen...</p>';
+                return;
+            }
+
+            let html = '<div style="display: grid; gap: 10px; margin-bottom: 15px;">';
+            
+            tankbeurten.slice(0, 5).forEach((tank, idx) => {
+                const gereden_km = tank.kilometerstand_na && tank.kilometerstand_voor
+                    ? tank.kilometerstand_na - tank.kilometerstand_voor
+                    : 0;
+
+                html += `
+                    <div style="background: ${idx % 2 === 0 ? '#f0f0f0' : '#fafafa'}; padding: 12px; border-radius: 8px; border-left: 3px solid ${tank.brandstof.includes('Diesel') ? '#333' : tank.brandstof.includes('LPG') ? '#00a86b' : tank.brandstof.includes('Electra') ? '#00d4aa' : '#e9c46a'};">
+                        <div style="font-weight: 600; color: #667eea;">${tank.brandstof}</div>
+                        <div style="font-size: 12px; color: #666;">📅 ${tank.datum} • 🕐 ${tank.tijd}</div>
+                        <div style="margin-top: 5px; font-weight: 500;">${tank.station_naam}</div>
+                        <div style="font-size: 13px;">💰 €${tank.prijs_per_liter.toFixed(2)}/L • ⛽️ ${tank.aantal_liters.toFixed(2)}L = €${tank.totaal_bedrag.toFixed(2)}</div>
+                        ${gereden_km > 0 ? `<div style="font-size: 12px; color: #28a745;">🚗 +${gereden_km.toFixed(1)} km</div>` : ''}
+                        <div style="margin-top: 8px;">
+                            <button class="edit-btn" onclick="openEditModal('${tank.aangemaakt_op}')">✏️ Bewerken</button>
+                            <button class="delete-btn" onclick="verwijderTankbeurt('${tank.aangemaakt_op}')">🗑️ Verwijderen</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            recenteTankbeurten.innerHTML = html;
+        }
+
+        function resetForm() {
+            tankbeurtForm.reset();
+            const nu = new Date();
+            document.getElementById('datum').value = nu.toISOString().split('T')[0];
+            document.getElementById('tijd').value = nu.toTimeString().substring(0, 5);
+        }
+
+        // Export functie
+        function exporteerCSV() {
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            
+            if (tankbeurten.length === 0) {
+                alert('Geen tankbeurten om te exporteren!');
+                return;
+            }
+
+            let csv = 'Datum,Tijd,Station,Merk,Stad,Provincie,Brandstof,Prijs/Liter,Liters,Totaal,KmVoor,KmNa,GeredenKm\n';
+            
+            tankbeurten.forEach(tank => {
+                const gereden_km = tank.kilometerstand_na && tank.kilometerstand_voor 
+                    ? tank.kilometerstand_na - tank.kilometerstand_voor 
+                    : 0;
+                csv += `"${tank.datum}","${tank.tijd}","${tank.station_naam}","${tank.station_merk}","${tank.stad}","${tank.provincie}","${tank.brandstof}","${tank.prijs_per_liter}","${tank.aantal_liters}","${tank.totaal_bedrag}","${tank.kilometerstand_voor}","${tank.kilometerstand_na}","${gereden_km}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tankbeurten_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Edit Modal functies
+        function openEditModal(aangemaaktOp) {
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            const tank = tankbeurten.find(t => t.aangemaakt_op === aangemaaktOp);
+
+            if (!tank) {
+                alert('Tankbeurt niet gevonden!');
+                return;
+            }
+
+            // Vul formulier met huidige data
+            document.getElementById('editTankbeurtId').value = aangemaaktOp;
+            document.getElementById('edit_datum').value = tank.datum;
+            document.getElementById('edit_tijd').value = tank.tijd;
+            document.getElementById('edit_station_naam').value = tank.station_naam;
+            document.getElementById('edit_station_merk').value = tank.station_merk || '';
+            document.getElementById('edit_stad').value = tank.stad || '';
+            document.getElementById('edit_provincie').value = tank.provincie || '';
+            document.getElementById('edit_brandstof').value = tank.brandstof;
+            document.getElementById('edit_prijs_per_liter').value = tank.prijs_per_liter;
+            document.getElementById('edit_aantal_liters').value = tank.aantal_liters;
+            document.getElementById('edit_totaal_bedrag').value = tank.totaal_bedrag;
+            document.getElementById('edit_kilometerstand_voor').value = tank.kilometerstand_voor || '';
+            document.getElementById('edit_kilometerstand_na').value = tank.kilometerstand_na || '';
+            document.getElementById('edit_opmerkingen').value = tank.opmerkingen || '';
+
+            // Open modal
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            document.getElementById('editForm').reset();
+        }
+
+        // Edit formulier verzenden
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const aangemaaktOp = document.getElementById('editTankbeurtId').value;
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            const index = tankbeurten.findIndex(t => t.aangemaakt_op === aangemaaktOp);
+
+            if (index === -1) {
+                alert('Tankbeurt niet gevonden!');
+                return;
+            }
+
+            // Update de tankbeurt
+            tankbeurten[index] = {
+                ...tankbeurten[index],
+                datum: document.getElementById('edit_datum').value,
+                tijd: document.getElementById('edit_tijd').value,
+                station_naam: document.getElementById('edit_station_naam').value,
+                station_merk: document.getElementById('edit_station_merk').value,
+                stad: document.getElementById('edit_stad').value,
+                provincie: document.getElementById('edit_provincie').value,
+                brandstof: document.getElementById('edit_brandstof').value,
+                prijs_per_liter: parseFloat(document.getElementById('edit_prijs_per_liter').value),
+                aantal_liters: parseFloat(document.getElementById('edit_aantal_liters').value),
+                totaal_bedrag: parseFloat(document.getElementById('edit_totaal_bedrag').value),
+                kilometerstand_voor: document.getElementById('edit_kilometerstand_voor').value || null,
+                kilometerstand_na: document.getElementById('edit_kilometerstand_na').value || null,
+                opmerkingen: document.getElementById('edit_opmerkingen').value
+            };
+
+            // Opslaan
+            localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
+
+            // Verversen
+            laadLaatsteTankbeurten();
+            closeEditModal();
+
+            // Succesbericht
+            successMessage.style.display = 'block';
+            successMessage.textContent = '✅ Tankbeurt bijgewerkt!';
+            setTimeout(() => successMessage.style.display = 'none', 3000);
+        });
+
+        // Tankbeurt verwijderen
+        function verwijderTankbeurt(aangemaaktOp) {
+            if (!confirm('Weet je zeker dat je deze tankbeurt wilt verwijderen?')) {
+                return;
+            }
+
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            const nieuweTankbeurten = tankbeurten.filter(t => t.aangemaakt_op !== aangemaaktOp);
+
+            localStorage.setItem('tankbeurten', JSON.stringify(nieuweTankbeurten));
+            laadLaatsteTankbeurten();
+
+            // Succesbericht
+            successMessage.style.display = 'block';
+            successMessage.textContent = '✅ Tankbeurt verwijderd!';
+            setTimeout(() => successMessage.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
