@@ -96,6 +96,11 @@ def index():
                 'fallback_error': str(e2)
             }), 500
 
+@app.route('/debug')
+def debug_page():
+    """Serveer debug pagina"""
+    return send_from_directory(STATIC_FOLDER, 'debug.html')
+
 @app.route('/api/debug')
 def debug_info():
     """Debug informatie"""
