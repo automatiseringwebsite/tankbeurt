@@ -10,8 +10,6 @@ import sqlite3
 import os
 from datetime import datetime
 
-app = Flask(__name__)
-
 # Database pad - dynamisch voor Render en lokaal
 # Render: /opt/render/project/src/tankbeurten.db
 # Lokaal: tankbeurten.db in dezelfde map
@@ -22,7 +20,7 @@ else:
     DB_PATH = os.path.join(os.path.dirname(__file__), 'tankbeurten.db')
     STATIC_FOLDER = os.path.dirname(__file__)
 
-app.static_folder = STATIC_FOLDER
+app = Flask(__name__, static_folder=STATIC_FOLDER)
 
 # CORS headers toevoegen
 @app.after_request
@@ -81,7 +79,35 @@ def init_db():
 @app.route('/')
 def index():
     """Serveer het HTML formulier"""
-    return send_from_directory(STATIC_FOLDER, 'tankbeurt_formulier.html')
+    try:
+        # Probeer index.html
+        return send_from_directory(STATIC_FOLDER, 'index.html')
+    except Exception as e:
+        # Fallback: tankbeurt_formulier.html
+        try:
+            return send_from_directory(STATIC_FOLDER, 'tankbeurt_formulier.html')
+        except Exception as e2:
+            # Als beide niet werken, toon debug info
+            return jsonify({
+                'error': 'Geen HTML bestand gevonden',
+                'static_folder': STATIC_FOLDER,
+                'files': os.listdir(STATIC_FOLDER) if os.path.exists(STATIC_FOLDER) else [],
+                'original_error': str(e),
+                'fallback_error': str(e2)
+            }), 500
+
+@app.route('/api/debug')
+def debug_info():
+    """Debug informatie"""
+    return jsonify({
+        'static_folder': STATIC_FOLDER,
+        'db_path': DB_PATH,
+        'static_folder_exists': os.path.exists(STATIC_FOLDER),
+        'db_exists': os.path.exists(DB_PATH),
+        'current_dir': os.getcwd(),
+        'script_dir': os.path.dirname(__file__),
+        'files_in_static': os.listdir(STATIC_FOLDER) if os.path.exists(STATIC_FOLDER) else []
+    })
 
 @app.route('/api/tankbeurten', methods=['GET'])
 def get_tankbeurten():
@@ -310,10 +336,11 @@ def update_tankbeurt(tankbeurt_id):
             'error': str(e)
         }), 500
 
-if __name__ == '__main__':
-    # Initialiseer database bij opstarten (indien nodig)
-    init_db()
+# Initialiseer database bij app import (werkt ook met gunicorn)
+print("🔧 Database initialiseren...")
+init_db()
 
+if __name__ == '__main__':
     # Start server
     print("\n" + "="*50)
     print("🚗 Tankbeurt Formulier Backend")
