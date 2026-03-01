@@ -348,6 +348,7 @@
                 </div>
                 <form id="editForm">
                     <input type="hidden" id="editTankbeurtId" name="id">
+                    <input type="hidden" id="editTankbeurtIsDatabase" name="isDatabase">
 
                     <div class="form-group">
                         <label for="edit_datum">📅 Datum</label>
@@ -653,25 +654,45 @@
         }
 
         // Edit Modal functies
-        function openEditModal(aangemaaktOp) {
-            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
-            const tank = tankbeurten.find(t => t.aangemaakt_op === aangemaaktOp);
+        function openEditModal(tankId, isDatabase = false) {
+            if (isDatabase) {
+                // Van database laden
+                fetch(`${API_BASE}/api/tankbeurten`)
+                    .then(response => response.json())
+                    .then(tankbeurten => {
+                        const tank = tankbeurten.find(t => t.id == tankId);
+                        if (!tank) {
+                            alert('Tankbeurt niet gevonden!');
+                            return;
+                        }
+                        vulEditFormulier(tank, tankId, true);
+                    })
+                    .catch(error => console.error('Error loading tankbeurt:', error));
+            } else {
+                // Van localStorage laden
+                const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+                const tank = tankbeurten.find(t => t.aangemaakt_op === tankId);
 
-            if (!tank) {
-                alert('Tankbeurt niet gevonden!');
-                return;
+                if (!tank) {
+                    alert('Tankbeurt niet gevonden!');
+                    return;
+                }
+                vulEditFormulier(tank, tankId, false);
             }
+        }
 
+        function vulEditFormulier(tank, tankId, isDatabase) {
             // Vul formulier met huidige data
-            document.getElementById('editTankbeurtId').value = aangemaaktOp;
+            document.getElementById('editTankbeurtId').value = tankId;
+            document.getElementById('editTankbeurtIsDatabase').value = isDatabase;
             document.getElementById('edit_datum').value = tank.datum;
             document.getElementById('edit_tijd').value = tank.tijd;
             document.getElementById('edit_station_naam').value = tank.station_naam;
-            document.getElementById('edit_station_merk').value = tank.station_merk || '';
+            document.getElementById('edit_station_merk').value = tank.station_merk || tank.brandstof_soort || '';
             document.getElementById('edit_stad').value = tank.stad || '';
             document.getElementById('edit_provincie').value = tank.provincie || '';
-            document.getElementById('edit_brandstof').value = tank.brandstof;
-            document.getElementById('edit_prijs_per_liter').value = tank.prijs_per_liter;
+            document.getElementById('edit_brandstof').value = tank.brandstof_soort || tank.brandstof;
+            document.getElementById('edit_prijs_per_liter').value = tank.brandstof_prijs_per_liter || tank.prijs_per_liter;
             document.getElementById('edit_aantal_liters').value = tank.aantal_liters;
             document.getElementById('edit_totaal_bedrag').value = tank.totaal_bedrag;
             document.getElementById('edit_kilometerstand_voor').value = tank.kilometerstand_voor || '';
@@ -688,29 +709,22 @@
         }
 
         // Edit formulier verzenden
-        document.getElementById('editForm').addEventListener('submit', function(e) {
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const aangemaaktOp = document.getElementById('editTankbeurtId').value;
-            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
-            const index = tankbeurten.findIndex(t => t.aangemaakt_op === aangemaaktOp);
+            const tankId = document.getElementById('editTankbeurtId').value;
+            const isDatabase = document.getElementById('editTankbeurtIsDatabase').value === 'true';
 
-            if (index === -1) {
-                alert('Tankbeurt niet gevonden!');
-                return;
-            }
-
-            // Update de tankbeurt
-            tankbeurten[index] = {
-                ...tankbeurten[index],
+            const tankbeurtData = {
                 datum: document.getElementById('edit_datum').value,
                 tijd: document.getElementById('edit_tijd').value,
                 station_naam: document.getElementById('edit_station_naam').value,
                 station_merk: document.getElementById('edit_station_merk').value,
+                station_adres: document.getElementById('edit_stad').value,
                 stad: document.getElementById('edit_stad').value,
                 provincie: document.getElementById('edit_provincie').value,
                 brandstof: document.getElementById('edit_brandstof').value,
-                prijs_per_liter: parseFloat(document.getElementById('edit_prijs_per_liter').value),
+                brandstof_prijs_per_liter: parseFloat(document.getElementById('edit_prijs_per_liter').value),
                 aantal_liters: parseFloat(document.getElementById('edit_aantal_liters').value),
                 totaal_bedrag: parseFloat(document.getElementById('edit_totaal_bedrag').value),
                 kilometerstand_voor: document.getElementById('edit_kilometerstand_voor').value || null,
@@ -718,35 +732,103 @@
                 opmerkingen: document.getElementById('edit_opmerkingen').value
             };
 
-            // Opslaan
-            localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
+            if (isDatabase) {
+                // Naar database sturen
+                try {
+                    const response = await fetch(`${API_BASE}/api/tankbeurten/${tankId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tankbeurtData)
+                    });
 
-            // Verversen
-            laadLaatsteTankbeurten();
-            closeEditModal();
+                    if (response.ok) {
+                        console.log('Tankbeurt bijgewerkt in database');
+                        await laadLaatsteTankbeurten();
+                        closeEditModal();
+                        showSuccessMessage('✅ Tankbeurt bijgewerkt!');
+                    } else {
+                        alert('Fout bij bijwerken: ' + response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error updating tankbeurt:', error);
+                    alert('Fout bij bijwerken: ' + error.message);
+                }
+            } else {
+                // Naar localStorage opslaan
+                const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+                const index = tankbeurten.findIndex(t => t.aangemaakt_op === tankId);
 
-            // Succesbericht
-            successMessage.style.display = 'block';
-            successMessage.textContent = '✅ Tankbeurt bijgewerkt!';
-            setTimeout(() => successMessage.style.display = 'none', 3000);
+                if (index === -1) {
+                    alert('Tankbeurt niet gevonden!');
+                    return;
+                }
+
+                // Update de tankbeurt
+                tankbeurten[index] = {
+                    ...tankbeurten[index],
+                    datum: tankbeurtData.datum,
+                    tijd: tankbeurtData.tijd,
+                    station_naam: tankbeurtData.station_naam,
+                    station_merk: tankbeurtData.station_merk,
+                    station_adres: tankbeurtData.station_adres,
+                    stad: tankbeurtData.stad,
+                    provincie: tankbeurtData.provincie,
+                    brandstof: tankbeurtData.brandstof,
+                    prijs_per_liter: tankbeurtData.brandstof_prijs_per_liter,
+                    aantal_liters: tankbeurtData.aantal_liters,
+                    totaal_bedrag: tankbeurtData.totaal_bedrag,
+                    kilometerstand_voor: tankbeurtData.kilometerstand_voor,
+                    kilometerstand_na: tankbeurtData.kilometerstand_na,
+                    opmerkingen: tankbeurtData.opmerkingen
+                };
+
+                // Opslaan
+                localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
+                laadLaatsteTankbeurten();
+                closeEditModal();
+                showSuccessMessage('✅ Tankbeurt bijgewerkt!');
+            }
         });
 
+        function showSuccessMessage(message) {
+            successMessage.style.display = 'block';
+            successMessage.textContent = message;
+            setTimeout(() => successMessage.style.display = 'none', 3000);
+        }
+
         // Tankbeurt verwijderen
-        function verwijderTankbeurt(aangemaaktOp) {
+        async function verwijderTankbeurt(tankId, isDatabase = false) {
             if (!confirm('Weet je zeker dat je deze tankbeurt wilt verwijderen?')) {
                 return;
             }
 
-            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
-            const nieuweTankbeurten = tankbeurten.filter(t => t.aangemaakt_op !== aangemaaktOp);
+            if (isDatabase) {
+                // Uit database verwijderen
+                try {
+                    const response = await fetch(`${API_BASE}/api/tankbeurten/${tankId}`, {
+                        method: 'DELETE'
+                    });
 
-            localStorage.setItem('tankbeurten', JSON.stringify(nieuweTankbeurten));
-            laadLaatsteTankbeurten();
+                    if (response.ok) {
+                        console.log('Tankbeurt verwijderd uit database');
+                        await laadLaatsteTankbeurten();
+                        showSuccessMessage('✅ Tankbeurt verwijderd!');
+                    } else {
+                        alert('Fout bij verwijderen: ' + response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error deleting tankbeurt:', error);
+                    alert('Fout bij verwijderen: ' + error.message);
+                }
+            } else {
+                // Uit localStorage verwijderen
+                const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+                const nieuweTankbeurten = tankbeurten.filter(t => t.aangemaakt_op !== tankId);
 
-            // Succesbericht
-            successMessage.style.display = 'block';
-            successMessage.textContent = '✅ Tankbeurt verwijderd!';
-            setTimeout(() => successMessage.style.display = 'none', 3000);
+                localStorage.setItem('tankbeurten', JSON.stringify(nieuweTankbeurten));
+                laadLaatsteTankbeurten();
+                showSuccessMessage('✅ Tankbeurt verwijderd!');
+            }
         }
     </script>
 </body>
