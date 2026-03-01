@@ -449,14 +449,17 @@
     </div>
 
     <script>
-        // Tankbeurt opslaan in localStorage
+        // API configuratie
+        const API_BASE = window.location.origin;
+
+        // Tankbeurt opslaan met database en localStorage fallback
         const tankbeurtForm = document.getElementById('tankbeurtForm');
         const successMessage = document.getElementById('successMessage');
         const recenteTankbeurten = document.getElementById('recenteTankbeurten');
 
         // Laatste tankbeurten laden bij het opstarten
-        window.onload = function() {
-            laadLaatsteTankbeurten();
+        window.onload = async function() {
+            await laadLaatsteTankbeurten();
             // Datum en tijd automatisch invullen
             const nu = new Date();
             document.getElementById('datum').value = nu.toISOString().split('T')[0];
@@ -476,7 +479,7 @@
             }
         }
 
-        tankbeurtForm.addEventListener('submit', function(e) {
+        tankbeurtForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const tankbeurt = {
@@ -488,25 +491,48 @@
                 stad: document.getElementById('stad').value,
                 provincie: document.getElementById('provincie').value,
                 brandstof: document.getElementById('brandstof').value,
-                prijs_per_liter: parseFloat(document.getElementById('prijs_per_liter').value),
+                brandstof_prijs_per_liter: parseFloat(document.getElementById('prijs_per_liter').value),
                 aantal_liters: parseFloat(document.getElementById('aantal_liters').value),
                 totaal_bedrag: parseFloat(document.getElementById('totaal_bedrag').value),
                 kilometerstand_voor: document.getElementById('kilometerstand_voor').value,
                 kilometerstand_na: document.getElementById('kilometerstand_na').value,
-                opmerkingen: document.getElementById('opmerkingen').value,
-                aangemaakt_op: new Date().toISOString()
+                opmerkingen: document.getElementById('opmerkingen').value
             };
 
-            // Tankbeurt opslaan in localStorage
-            let tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
-            tankbeurten.unshift(tankbeurt);
-            
-            // Maximaal 50 tankbeurten bewaren
-            if (tankbeurten.length > 50) {
-                tankbeurten = tankbeurten.slice(0, 50);
+            try {
+                // Proberen naar database te sturen
+                const response = await fetch(`${API_BASE}/api/tankbeurten`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tankbeurt)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Tankbeurt opgeslagen in database:', result);
+                } else {
+                    throw new Error('API error');
+                }
+            } catch (error) {
+                console.log('API niet beschikbaar, opslaan in localStorage');
+
+                // Fallback: localStorage
+                const tankbeurtWithTimestamp = {
+                    ...tankbeurt,
+                    prijs_per_liter: tankbeurt.brandstof_prijs_per_liter, //Voor compatibiliteit met toonTankbeurten
+                    aangemaakt_op: new Date().toISOString()
+                };
+
+                let tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+                tankbeurten.unshift(tankbeurtWithTimestamp);
+
+                // Maximaal 50 tankbeurten bewaren
+                if (tankbeurten.length > 50) {
+                    tankbeurten = tankbeurten.slice(0, 50);
+                }
+
+                localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
             }
-            
-            localStorage.setItem('tankbeurten', JSON.stringify(tankbeurten));
 
             // Succesbericht tonen
             successMessage.style.display = 'block';
@@ -515,42 +541,60 @@
             }, 3000);
 
             // Laatste tankbeurten verversen
-            laadLaatsteTankbeurten();
+            await laadLaatsteTankbeurten();
 
             // Formulier resetten
             tankbeurtForm.reset();
-            
+
             // Datum en tijd opnieuw invullen
             const nu = new Date();
             document.getElementById('datum').value = nu.toISOString().split('T')[0];
             document.getElementById('tijd').value = nu.toTimeString().substring(0, 5);
         });
 
-        function laadLaatsteTankbeurten() {
-            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+        async function laadLaatsteTankbeurten() {
+            try {
+                // Eerst proberen van database te laden
+                const response = await fetch(`${API_BASE}/api/tankbeurten`);
+                if (response.ok) {
+                    const tankbeurten = await response.json();
+                    toonTankbeurten(tankbeurten);
+                    return;
+                }
+            } catch (error) {
+                console.log('API niet beschikbaar, fallback naar localStorage');
+            }
 
+            // Fallback: localStorage
+            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            toonTankbeurten(tankbeurten);
+        }
+
+        function toonTankbeurten(tankbeurten) {
             if (tankbeurten.length === 0) {
                 recenteTankbeurten.innerHTML = '<p style="color: #999; font-style: italic;">Nog geen tankbeurten opgeslagen...</p>';
                 return;
             }
 
             let html = '<div style="display: grid; gap: 10px; margin-bottom: 15px;">';
-            
+
             tankbeurten.slice(0, 5).forEach((tank, idx) => {
+                // Check voor database ID of localStorage timestamp
+                const tankId = tank.id || tank.aangemaakt_op;
                 const gereden_km = tank.kilometerstand_na && tank.kilometerstand_voor
                     ? tank.kilometerstand_na - tank.kilometerstand_voor
                     : 0;
 
                 html += `
-                    <div style="background: ${idx % 2 === 0 ? '#f0f0f0' : '#fafafa'}; padding: 12px; border-radius: 8px; border-left: 3px solid ${tank.brandstof.includes('Diesel') ? '#333' : tank.brandstof.includes('LPG') ? '#00a86b' : tank.brandstof.includes('Electra') ? '#00d4aa' : '#e9c46a'};">
-                        <div style="font-weight: 600; color: #667eea;">${tank.brandstof}</div>
+                    <div style="background: ${idx % 2 === 0 ? '#f0f0f0' : '#fafafa'}; padding: 12px; border-radius: 8px; border-left: 3px solid ${tank.brandstof_soort ? tank.brandstof_soort.includes('Diesel') ? '#333' : tank.brandstof_soort.includes('LPG') ? '#00a86b' : tank.brandstof_soort.includes('Electra') ? '#00d4aa' : '#e9c46a' : tank.brandstof.includes('Diesel') ? '#333' : tank.brandstof.includes('LPG') ? '#00a86b' : tank.brandstof.includes('Electra') ? '#00d4aa' : '#e9c46a'};">
+                        <div style="font-weight: 600; color: #667eea;">${tank.brandstof_soort || tank.brandstof}</div>
                         <div style="font-size: 12px; color: #666;">📅 ${tank.datum} • 🕐 ${tank.tijd}</div>
                         <div style="margin-top: 5px; font-weight: 500;">${tank.station_naam}</div>
-                        <div style="font-size: 13px;">💰 €${tank.prijs_per_liter.toFixed(2)}/L • ⛽️ ${tank.aantal_liters.toFixed(2)}L = €${tank.totaal_bedrag.toFixed(2)}</div>
+                        <div style="font-size: 13px;">💰 €${tank.brandstof_prijs_per_liter ? tank.brandstof_prijs_per_liter.toFixed(2) : tank.prijs_per_liter.toFixed(2)}/L • ⛽️ ${tank.aantal_liters.toFixed(2)}L = €${tank.totaal_bedrag.toFixed(2)}</div>
                         ${gereden_km > 0 ? `<div style="font-size: 12px; color: #28a745;">🚗 +${gereden_km.toFixed(1)} km</div>` : ''}
                         <div style="margin-top: 8px;">
-                            <button class="edit-btn" onclick="openEditModal('${tank.aangemaakt_op}')">✏️ Bewerken</button>
-                            <button class="delete-btn" onclick="verwijderTankbeurt('${tank.aangemaakt_op}')">🗑️ Verwijderen</button>
+                            <button class="edit-btn" onclick="openEditModal('${tankId}', ${tank.id ? 'true' : 'false'})">✏️ Bewerken</button>
+                            <button class="delete-btn" onclick="verwijderTankbeurt('${tankId}', ${tank.id ? 'true' : 'false'})">🗑️ Verwijderen</button>
                         </div>
                     </div>
                 `;
@@ -568,21 +612,34 @@
         }
 
         // Export functie
-        function exporteerCSV() {
-            const tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
-            
+        async function exporteerCSV() {
+            let tankbeurten = [];
+
+            try {
+                // Proberen van database te laden
+                const response = await fetch(`${API_BASE}/api/tankbeurten`);
+                if (response.ok) {
+                    tankbeurten = await response.json();
+                } else {
+                    throw new Error('API error');
+                }
+            } catch (error) {
+                // Fallback: localStorage
+                tankbeurten = JSON.parse(localStorage.getItem('tankbeurten') || '[]');
+            }
+
             if (tankbeurten.length === 0) {
                 alert('Geen tankbeurten om te exporteren!');
                 return;
             }
 
             let csv = 'Datum,Tijd,Station,Merk,Stad,Provincie,Brandstof,Prijs/Liter,Liters,Totaal,KmVoor,KmNa,GeredenKm\n';
-            
+
             tankbeurten.forEach(tank => {
-                const gereden_km = tank.kilometerstand_na && tank.kilometerstand_voor 
-                    ? tank.kilometerstand_na - tank.kilometerstand_voor 
+                const gereden_km = tank.kilometerstand_na && tank.kilometerstand_voor
+                    ? tank.kilometerstand_na - tank.kilometerstand_voor
                     : 0;
-                csv += `"${tank.datum}","${tank.tijd}","${tank.station_naam}","${tank.station_merk}","${tank.stad}","${tank.provincie}","${tank.brandstof}","${tank.prijs_per_liter}","${tank.aantal_liters}","${tank.totaal_bedrag}","${tank.kilometerstand_voor}","${tank.kilometerstand_na}","${gereden_km}"\n`;
+                csv += `"${tank.datum}","${tank.tijd}","${tank.station_naam}","${tank.station_merk}","${tank.stad}","${tank.provincie}","${tank.brandstof_soort || tank.brandstof}","${tank.brandstof_prijs_per_liter || tank.prijs_per_liter}","${tank.aantal_liters}","${tank.totaal_bedrag}","${tank.kilometerstand_voor}","${tank.kilometerstand_na}","${gereden_km}"\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv' });
