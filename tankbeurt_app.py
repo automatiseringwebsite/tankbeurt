@@ -155,8 +155,8 @@ def add_tankbeurt():
                 datum, tijd, station_naam, station_merk, station_adres,
                 stad, provincie, brandstof_soort, brandstof_prijs_per_liter,
                 aantal_liters, totaal_bedrag, kilometerstand_voor, kilometerstand_na,
-                gereden_km, opmerkingen, foto_pad
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                gereden_km, opmerkingen
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             data.get('datum'),
             data.get('tijd'),
@@ -172,8 +172,7 @@ def add_tankbeurt():
             data.get('kilometerstand_voor'),
             data.get('kilometerstand_na'),
             gereden,
-            data.get('opmerkingen'),
-            data.get('foto_pad')
+            data.get('opmerkingen')
         ))
         
         conn.commit()
